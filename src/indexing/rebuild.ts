@@ -17,6 +17,20 @@ export function startRebuild(client: Typesense.Client, env: Env): RebuildStatus 
   void runRebuild(client, env, status); return status;
 }
 
+async function publishRebuiltCollection(client: Typesense.Client, env: Env, physical: string): Promise<void> {
+  try {
+    await client.aliases(env.SEARCH_INDEX_NAME).retrieve();
+  } catch {
+    try {
+      await client.collections(env.SEARCH_INDEX_NAME).retrieve();
+      await client.collections(env.SEARCH_INDEX_NAME).delete();
+    } catch {
+      // The logical name may not exist yet; alias creation below handles that case.
+    }
+  }
+  await client.aliases().upsert(env.SEARCH_INDEX_NAME, { collection_name: physical });
+}
+
 async function runRebuild(client: Typesense.Client, env: Env, status: RebuildStatus): Promise<void> {
   const physical = `${env.SEARCH_INDEX_NAME}_${Date.now()}`;
   try {
@@ -37,6 +51,6 @@ async function runRebuild(client: Typesense.Client, env: Env, status: RebuildSta
         status.counts[table] += docs.length; cursor = String((data.at(-1) as Record<string, unknown>).id);
       }
     }
-    await client.aliases().upsert(env.SEARCH_INDEX_NAME, { collection_name: physical }); await ensureCollection(client, env, physical); status.status = "complete"; status.completedAt = new Date().toISOString();
+    await publishRebuiltCollection(client, env, physical); await ensureCollection(client, env, physical); status.status = "complete"; status.completedAt = new Date().toISOString();
   } catch (error) { status.status = "failed"; status.completedAt = new Date().toISOString(); status.error = error instanceof Error ? error.message : "Rebuild failed"; try { await client.collections(physical).delete(); } catch { /* best effort */ } }
 }
