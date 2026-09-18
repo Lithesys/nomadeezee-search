@@ -13,5 +13,7 @@ export const searchCollectionSchema = (name: string): CollectionCreateSchema => 
 
 export async function ensureCollection(client: Typesense.Client, env: Env, physicalName = env.SEARCH_INDEX_NAME): Promise<void> {
   try { await client.collections(physicalName).retrieve(); } catch { await client.collections().create(searchCollectionSchema(physicalName)); }
-  try { await client.aliases(env.SEARCH_INDEX_NAME).retrieve(); } catch { await client.aliases().upsert(env.SEARCH_INDEX_NAME, { collection_name: physicalName }); }
+  if (physicalName !== env.SEARCH_INDEX_NAME) {
+    try { await client.aliases(env.SEARCH_INDEX_NAME).retrieve(); } catch { await client.aliases().upsert(env.SEARCH_INDEX_NAME, { collection_name: physicalName }); }
+  }
 }
