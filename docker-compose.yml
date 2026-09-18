@@ -1,0 +1,23 @@
+services:
+  typesense:
+    image: typesense/typesense:30.2
+    command: '--data-dir /data --api-key=${TYPESENSE_API_KEY:-local-typesense-key} --listen-port 8108 --enable-cors=false'
+    ports:
+      - "8108:8108"
+    volumes:
+      - typesense-data:/data
+  search-api:
+    build: .
+    depends_on:
+      - typesense
+    ports:
+      - "10000:10000"
+    env_file:
+      - .env
+    environment:
+      TYPESENSE_HOST: typesense
+      TYPESENSE_PORT: 8108
+      TYPESENSE_PROTOCOL: http
+    command: ["node", "dist/src/server.js"]
+volumes:
+  typesense-data:
