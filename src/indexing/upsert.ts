@@ -9,7 +9,8 @@ const typeByTable = { places: "place", trip_boards: "board", fav_categories: "co
 
 async function currentDocument(env: Env, table: keyof typeof typeByTable, id: string): Promise<SearchDocument | null> {
   const supabase = serviceSupabase(env); const type = typeByTable[table];
-  const { data: row, error } = await supabase.from(tableByType[type]).select("*").eq("id", id).maybeSingle();
+  const sourceTable = type === "place" ? "places_with_counts" : tableByType[type];
+  const { data: row, error } = await supabase.from(sourceTable).select("*").eq("id", id).maybeSingle();
   if (error) throw error; if (!row) return null;
   const membershipTable = type === "board" ? "trip_board_members" : type === "collection" ? "fav_category_members" : null;
   let access: string[] = [];

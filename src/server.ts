@@ -14,6 +14,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerSearchRoutes } from "./routes/search.js";
 import { registerInternalIndexRoute } from "./routes/internal-index.js";
 import { registerAdminRoutes } from "./routes/admin-rebuild.js";
+import { registerRecommendationRoutes } from "./routes/recommendations.js";
 import { startChangeLogWorker } from "./indexing/change-log.js";
 
 declare module "fastify" {
@@ -99,6 +100,7 @@ export async function buildServer(
   );
   registerHealthRoutes(app, env);
   await registerSearchRoutes(app, env);
+  await registerRecommendationRoutes(app, env);
   registerInternalIndexRoute(app, env);
   registerAdminRoutes(app, env);
   const stopChangeLog = startChangeLogWorker(typesense, env, app.log);

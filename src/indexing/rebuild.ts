@@ -38,7 +38,8 @@ async function runRebuild(client: Typesense.Client, env: Env, status: RebuildSta
     for (const { table, type } of config) {
       let cursor = "";
       while (true) {
-        let query = supabase.from(table).select("*").order("id", { ascending: true }).limit(500); if (cursor) query = query.gt("id", cursor);
+        const sourceTable = type === "place" ? "places_with_counts" : table;
+        let query = supabase.from(sourceTable).select("*").order("id", { ascending: true }).limit(500); if (cursor) query = query.gt("id", cursor);
         const { data, error } = await query; if (error) throw error; if (!data?.length) break;
         const docs = [];
         for (const row of data as Record<string, unknown>[]) {

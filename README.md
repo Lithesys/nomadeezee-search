@@ -105,6 +105,21 @@ Anonymous requests see public, non-unlisted documents. Authenticated requests
 may also see documents owned by or shared with the verified user. Invalid
 Bearer tokens return `401`; malformed queries return `400`.
 
+### Recommendations
+
+`GET /v1/recommendations` requires a verified Supabase Bearer token and returns
+the signed-in user's public place feed. It uses existing likes, favourites, and
+favourite-collection additions, with category, province/country, freshness,
+and like-count signals. It never records place views or stores personal signals
+in Typesense. Use `categories`, `limit` (1-50), and the signed `cursor` returned
+by the previous response. A response includes `personalized`,
+`algorithmVersion`, `places`, and an optional `nextCursor`.
+
+`GET /v1/places/:id/similar` returns up to twelve public places related to the
+source place. It is an API-only surface for the Nomadeezee app and excludes the
+source place itself. Both endpoints re-read place data through Supabase RLS;
+the ordinary discovery feed remains the fallback when the service is unavailable.
+
 ### Indexing and rebuilds
 
 `POST /internal/index` accepts a Supabase webhook payload and requires the
