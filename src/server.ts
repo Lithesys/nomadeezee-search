@@ -48,7 +48,7 @@ export async function buildServer(
   app.decorate("searchEnv", env);
   await app.register(cors, {
     origin: env.CORS_ORIGINS,
-    methods: ["GET", "OPTIONS"],
+    methods: ["GET", "POST", "OPTIONS"],
   });
   await app.register(rateLimit, {
     max: env.SEARCH_AUTHENTICATED_RPM,

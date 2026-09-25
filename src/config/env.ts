@@ -21,6 +21,11 @@ const schema = z.object({
   SEARCH_PUBLIC_RPM: z.coerce.number().int().positive().default(60),
   SEARCH_AUTHENTICATED_RPM: z.coerce.number().int().positive().default(120),
   SEARCH_DATABASE_URL: z.string().optional(),
+  RECOMMENDATION_EXPLORATION_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
+  RECOMMENDATION_EXPLORATION_RATE: z.coerce.number().min(0).max(0.3).default(0.1),
+  RECOMMENDATION_EXPLORATION_TEMPERATURE: z.coerce.number().min(0.05).max(1).default(0.2),
+  RECOMMENDATION_RECENT_SEEN_HOURS: z.coerce.number().int().min(1).max(168).default(6),
+  RECOMMENDATION_SEEN_PENALTY_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 });
 
 export type Env = z.infer<typeof schema> & { CORS_ORIGINS: string[] };

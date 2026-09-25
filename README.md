@@ -50,6 +50,11 @@ Required settings:
 | `SEARCH_CORS_ORIGINS` | Comma-separated allowed browser origins |
 | `SEARCH_INDEX_NAME` | Typesense alias used by the API |
 | `SEARCH_DATABASE_URL` | Optional PostgreSQL connection for the change-log worker |
+| `RECOMMENDATION_EXPLORATION_ENABLED` | Enables Recommendation V2 exploration; defaults to `true` after its SQL migration is applied. Set `false` for rollback. |
+| `RECOMMENDATION_EXPLORATION_RATE` | Exploration share of each feed page; defaults to `0.1`, capped at `0.3` |
+| `RECOMMENDATION_EXPLORATION_TEMPERATURE` | Weighted exploration diversity; defaults to `0.2` |
+| `RECOMMENDATION_RECENT_SEEN_HOURS` | Recent-impression hard suppression window; defaults to `6` |
+| `RECOMMENDATION_SEEN_PENALTY_DAYS` | Seen-item decay window; defaults to `30` |
 
 Secrets must be at least 16 characters where enforced by the application. The
 real `.env` file is ignored by Git and must never be committed.
@@ -107,13 +112,35 @@ Bearer tokens return `401`; malformed queries return `400`.
 
 ### Recommendations
 
-`GET /v1/recommendations` requires a verified Supabase Bearer token and returns
-the signed-in user's public place feed. It uses existing likes, favourites, and
-favourite-collection additions, with category, province/country, freshness,
-and like-count signals. It never records place views or stores personal signals
-in Typesense. Use `categories`, `limit` (1-50), and the signed `cursor` returned
-by the previous response. A response includes `personalized`,
-`algorithmVersion`, `places`, and an optional `nextCursor`.
+`GET /v1/recommendations` returns the signed-in user's public place feed. With
+Recommendation V2 enabled, it uses bounded Supabase candidate queries, existing
+likes/favourites/collection additions, quality and freshness scores, location
+relevance, impression decay, weighted unseen exploration, and category
+diversity. The endpoint keeps the `places` response for compatibility and adds
+`requestId` plus `items[].recommendation` attribution. `GET
+/v1/recommendations/feed` returns the same V2 envelope and can also serve an
+anonymous feed when V2 is enabled. Both accept `categories`, `limit` (1-50),
+`lat`, `lng`, `session_id`, and a signed `cursor`.
+
+V2 defaults to enabled after the Nomadeezee Supabase migration is applied. Set
+`RECOMMENDATION_EXPLORATION_ENABLED=false` to roll back to the existing ranking.
+Apply
+`supabase/migrations/20260925075941_recommendation_v2_exploration_system.sql`
+to the Nomadeezee Supabase project before enabling it. The migration adds RLS
+protected impression/event/state tables and bounded candidate and telemetry
+RPCs. It keeps scoring in the service and leaves Supabase RLS authoritative.
+
+The main app sends visible-card impressions to `POST
+/v1/recommendations/impressions` after at least 50% visibility for 500 ms, and
+sends successful detail opens, likes, and saves to `POST
+/v1/recommendations/events`. Both endpoints accept up to 50 records per call;
+anonymous calls need a UUID `sessionId`. Impression writes are idempotent per
+request/place. Authenticated users are derived from their verified Bearer
+token, never a client-supplied `userId`.
+
+When V2 is disabled, the legacy authenticated `actions-v1` behavior remains
+active. The service does not store personal signals in Typesense. The main
+application owns the IntersectionObserver and the signed telemetry requests.
 
 `GET /v1/places/:id/similar` returns up to twelve public places related to the
 source place. It is an API-only surface for the Nomadeezee app and excludes the
